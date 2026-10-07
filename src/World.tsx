@@ -3,7 +3,6 @@ import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
 import type { Group } from 'three'
 import {
-  PATH_LENGTH,
   PATH_OVERLAP,
   PATH_WIDTH,
   pathStart,
@@ -97,8 +96,8 @@ function Path({ room }: { room: Room }) {
   return (
     <group position={[start.x, 0, start.z]} rotation-y={-room.heading}>
       <Grow axis="z" duration={PATH_DURATION}>
-        <mesh position={[0, 0, -PATH_LENGTH / 2]} rotation-x={-Math.PI / 2}>
-          <planeGeometry args={[PATH_WIDTH, PATH_LENGTH + PATH_OVERLAP * 2]} />
+        <mesh position={[0, 0, -room.length / 2]} rotation-x={-Math.PI / 2}>
+          <planeGeometry args={[PATH_WIDTH, room.length + PATH_OVERLAP * 2]} />
           <meshStandardMaterial color="#6b7a99" />
         </mesh>
       </Grow>
