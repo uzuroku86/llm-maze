@@ -32,13 +32,13 @@ export default function App() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'Enter' || !locked) return
+      if (e.code !== 'Enter' || asking) return
       controls.current?.unlock()
       setAsking(true)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [locked])
+  }, [asking])
 
   const ask = async (question: string) => {
     abort.current?.abort()
