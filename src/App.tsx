@@ -104,9 +104,26 @@ export default function App() {
         </div>
       )}
       {!locked && !asking && (
-        <div style={{ ...overlayStyle, flexDirection: 'column', gap: 12 }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 16,
+            right: 16,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            gap: 8,
+            maxWidth: 360,
+            color: '#000',
+            fontFamily: 'sans-serif',
+            fontSize: 14,
+            textAlign: 'right',
+            pointerEvents: 'none',
+            textShadow: '0 0 8px #fff',
+          }}
+        >
           クリックで開始 / WASD/矢印キー: 移動 / マウス: 視点 / Enter: 相談する / ESC: 解除
-          <button style={{ pointerEvents: 'auto', padding: '6px 16px', fontSize: 16 }} onClick={openInput}>
+          <button style={{ pointerEvents: 'auto', padding: '6px 16px', fontSize: 14 }} onClick={openInput}>
             相談する
           </button>
         </div>
