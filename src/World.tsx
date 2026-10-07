@@ -52,7 +52,7 @@ function Label({
   text,
   detail,
   position,
-  fontSize = 1,
+  fontSize = 0.75,
   maxWidth = 12,
 }: {
   text: string
@@ -77,7 +77,7 @@ function Label({
       {detail && (
         <Text
           {...common}
-          fontSize={fontSize * 0.45}
+          fontSize={fontSize * 0.55}
           maxWidth={maxWidth}
           anchorY="top"
           position-y={-0.2 * fontSize}
@@ -123,7 +123,7 @@ export default function World({ root }: { root: ThoughtNode }) {
   return (
     <>
       <Room radius={ROOM_RADIUS} color="#3d4a6b" />
-      <Label text={root.label} detail={root.detail} position={[0, 3, 0]} fontSize={0.5} maxWidth={8} />
+      <Label text={root.label} detail={root.detail} position={[0, 3, 0]} fontSize={0.4} maxWidth={8} />
       {branches.map((node, i) => (
         <Branch key={node.id} node={node} angle={branchAngle(i)} />
       ))}
