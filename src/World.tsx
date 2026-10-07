@@ -1,4 +1,7 @@
+import { useRef, type ReactNode } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
+import type { Group } from 'three'
 import {
   PATH_LENGTH,
   PATH_OVERLAP,
@@ -10,6 +13,42 @@ import {
 const LABEL_HEIGHT = 3.5
 const QUESTION_HEIGHT = 0.9
 const QUESTION_OFFSET = 3
+
+const PATH_DURATION = 0.6
+const ROOM_DURATION = 0.35
+const LABEL_DURATION = 0.3
+
+// 生成されて表示された瞬間から、delay秒後にduration秒かけて大きくなる
+function Grow({
+  delay = 0,
+  duration,
+  axis,
+  children,
+}: {
+  delay?: number
+  duration: number
+  axis?: 'z'
+  children: ReactNode
+}) {
+  const ref = useRef<Group>(null)
+  const startedAt = useRef<number | null>(null)
+
+  useFrame(({ clock }) => {
+    const group = ref.current
+    if (!group) return
+    startedAt.current ??= clock.elapsedTime
+    const t = Math.min(1, Math.max(0, (clock.elapsedTime - startedAt.current - delay) / duration))
+    const scale = Math.max(1 - (1 - t) ** 3, 0.0001)
+    if (axis === 'z') group.scale.set(1, 1, scale)
+    else group.scale.setScalar(scale)
+  })
+
+  return (
+    <group ref={ref} scale={0.0001}>
+      {children}
+    </group>
+  )
+}
 
 function Label({
   text,
@@ -57,10 +96,12 @@ function Path({ room }: { room: Room }) {
   const start = pathStart(room)
   return (
     <group position={[start.x, 0, start.z]} rotation-y={-room.heading}>
+      <Grow axis="z" duration={PATH_DURATION}>
         <mesh position={[0, 0, -PATH_LENGTH / 2]} rotation-x={-Math.PI / 2}>
           <planeGeometry args={[PATH_WIDTH, PATH_LENGTH + PATH_OVERLAP * 2]} />
           <meshStandardMaterial color="#6b7a99" />
         </mesh>
+      </Grow>
     </group>
   )
 }
@@ -82,8 +123,21 @@ function RoomView({ room }: { room: Room }) {
 
   return (
     <group position={[room.x, 0, room.z]}>
-      {floor}
-      {label}
+      {isRoot ? (
+        <>
+          {floor}
+          {label}
+        </>
+      ) : (
+        <>
+          <Grow delay={PATH_DURATION} duration={ROOM_DURATION}>
+            {floor}
+          </Grow>
+          <Grow delay={PATH_DURATION + ROOM_DURATION} duration={LABEL_DURATION}>
+            {label}
+          </Grow>
+        </>
+      )}
     </group>
   )
 }
@@ -114,6 +168,7 @@ function Questions({ room }: { room: Room }) {
     <>
       {signs.map((sign) => (
         <group key={sign.id} position={[sign.x, QUESTION_HEIGHT, sign.z]}>
+          <Grow duration={LABEL_DURATION}>
             <Billboard>
               <Text
                 fontSize={0.35}
@@ -129,6 +184,7 @@ function Questions({ room }: { room: Room }) {
                 {`問い: ${sign.question}`}
               </Text>
             </Billboard>
+          </Grow>
         </group>
       ))}
     </>
