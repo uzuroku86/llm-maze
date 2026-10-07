@@ -30,14 +30,18 @@ export default function App() {
   const controls = useRef<ComponentRef<typeof PointerLockControls>>(null)
   const abort = useRef<AbortController | null>(null)
 
+  const openInput = () => {
+    controls.current?.unlock()
+    setAsking(true)
+  }
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'Enter' || asking) return
-      controls.current?.unlock()
-      setAsking(true)
+      if (e.key !== 'Enter' || e.repeat || asking) return
+      openInput()
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [asking])
 
   const ask = async (question: string) => {
@@ -100,8 +104,11 @@ export default function App() {
         </div>
       )}
       {!locked && !asking && (
-        <div style={overlayStyle}>
+        <div style={{ ...overlayStyle, flexDirection: 'column', gap: 12 }}>
           クリックで開始 / WASD/矢印キー: 移動 / マウス: 視点 / Enter: 相談する / ESC: 解除
+          <button style={{ pointerEvents: 'auto', padding: '6px 16px', fontSize: 16 }} onClick={openInput}>
+            相談する
+          </button>
         </div>
       )}
       {asking && (
