@@ -9,14 +9,18 @@ const BRANCH_ROOM_RADIUS = 4
 const LABEL_HEIGHT = 3.5
 const BRANCH_SPREAD = Math.PI / 4
 
-const branchAngle = (i: number, count: number) => (i - (count - 1) / 2) * BRANCH_SPREAD
+// 後から枝が増えても既存の道が動かないよう、番号ごとに角度を固定する
+const BRANCH_SLOTS = [-1, 0, 1, -2, 2]
+export const MAX_BRANCHES = BRANCH_SLOTS.length
+
+const branchAngle = (i: number) => BRANCH_SLOTS[i] * BRANCH_SPREAD
 
 export function isWalkable(root: ThoughtNode, x: number, z: number) {
   if (Math.hypot(x, z) <= ROOM_RADIUS) return true
 
   const count = root.branches?.length ?? 0
   for (let i = 0; i < count; i++) {
-    const angle = branchAngle(i, count)
+    const angle = branchAngle(i)
     const along = x * Math.sin(angle) - z * Math.cos(angle)
     const across = x * Math.cos(angle) + z * Math.sin(angle)
     if (Math.abs(across) <= PATH_WIDTH / 2 && along >= ROOM_RADIUS - PATH_OVERLAP && along <= ROOM_RADIUS + PATH_LENGTH + PATH_OVERLAP) {
@@ -34,7 +38,7 @@ export function getPathDirection(root: ThoughtNode, x: number, z: number) {
 
   const count = root.branches?.length ?? 0
   for (let i = 0; i < count; i++) {
-    const angle = branchAngle(i, count)
+    const angle = branchAngle(i)
     const along = x * Math.sin(angle) - z * Math.cos(angle)
     const across = x * Math.cos(angle) + z * Math.sin(angle)
     if (Math.abs(across) <= PATH_WIDTH / 2 && along >= ROOM_RADIUS && along <= ROOM_RADIUS + PATH_LENGTH) {
@@ -98,7 +102,7 @@ export default function World({ root }: { root: ThoughtNode }) {
       <Room radius={ROOM_RADIUS} color="#3d4a6b" />
       <Label text={root.label} position={[0, 3, 0]} fontSize={0.5} />
       {branches.map((node, i) => (
-        <Branch key={node.id} node={node} angle={branchAngle(i, branches.length)} />
+        <Branch key={node.id} node={node} angle={branchAngle(i)} />
       ))}
     </>
   )
