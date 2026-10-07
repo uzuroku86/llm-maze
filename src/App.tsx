@@ -3,8 +3,10 @@ import { Canvas } from '@react-three/fiber'
 import { PointerLockControls } from '@react-three/drei'
 import Player from './Player'
 import World, { MAX_BRANCHES, getPathDirection, isWalkable } from './World'
-import { thoughtGraph, type ThoughtNode } from './thoughtGraph'
+import type { ThoughtNode } from './thoughtGraph'
 import { streamThought } from './think'
+
+const emptyGraph: ThoughtNode = { id: 'root', label: '', branches: [] }
 
 const overlayStyle = {
   position: 'fixed',
@@ -19,10 +21,10 @@ const overlayStyle = {
 } as const
 
 export default function App() {
-  const [graph, setGraph] = useState<ThoughtNode>(thoughtGraph)
+  const [graph, setGraph] = useState<ThoughtNode>(emptyGraph)
   const [session, setSession] = useState(0)
   const [locked, setLocked] = useState(false)
-  const [asking, setAsking] = useState(false)
+  const [asking, setAsking] = useState(true)
   const [thinking, setThinking] = useState(false)
   const [error, setError] = useState('')
   const controls = useRef<ComponentRef<typeof PointerLockControls>>(null)
