@@ -1,6 +1,6 @@
 export async function streamThought(
   question: string,
-  onLabel: (label: string) => void,
+  onNode: (node: { label: string; detail?: string }) => void,
   signal: AbortSignal,
 ) {
   const res = await fetch('/api/think', {
@@ -13,8 +13,8 @@ export async function streamThought(
 
   const emit = (line: string) => {
     try {
-      const { label } = JSON.parse(line)
-      if (typeof label === 'string') onLabel(label)
+      const { label, detail } = JSON.parse(line)
+      if (typeof label === 'string') onNode({ label, detail: typeof detail === 'string' ? detail : undefined })
     } catch {
       // JSON以外の行(コードブロックの記号など)は読み飛ばす
     }

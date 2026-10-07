@@ -53,12 +53,12 @@ export default function App() {
     try {
       await streamThought(
         question,
-        (label) => {
+        (node) => {
           const index = received++
           if (index === 0) {
-            setGraph((g) => ({ ...g, label }))
+            setGraph((g) => ({ ...g, ...node }))
           } else if (index <= MAX_BRANCHES) {
-            setGraph((g) => ({ ...g, branches: [...(g.branches ?? []), { id: `b${index}`, label }] }))
+            setGraph((g) => ({ ...g, branches: [...(g.branches ?? []), { id: `b${index}`, ...node }] }))
           }
         },
         controller.signal,

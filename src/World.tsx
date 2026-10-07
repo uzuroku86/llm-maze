@@ -48,21 +48,44 @@ export function getPathDirection(root: ThoughtNode, x: number, z: number) {
   return null
 }
 
-function Label({ text, position, fontSize = 1 }: { text: string; position: [number, number, number]; fontSize?: number }) {
+function Label({
+  text,
+  detail,
+  position,
+  fontSize = 1,
+  maxWidth = 12,
+}: {
+  text: string
+  detail?: string
+  position: [number, number, number]
+  fontSize?: number
+  maxWidth?: number
+}) {
+  const common = {
+    textAlign: 'center',
+    anchorX: 'center',
+    overflowWrap: 'break-word',
+    color: '#000',
+    outlineColor: '#fff',
+  } as const
+
   return (
     <Billboard position={position}>
-      <Text
-        fontSize={fontSize}
-        maxWidth={12}
-        textAlign="center"
-        anchorX="center"
-        anchorY="middle"
-        color="#000"
-        outlineWidth={0.05}
-        outlineColor="#fff"
-      >
+      <Text {...common} fontSize={fontSize} maxWidth={maxWidth} anchorY="bottom" outlineWidth={0.05}>
         {text}
       </Text>
+      {detail && (
+        <Text
+          {...common}
+          fontSize={fontSize * 0.45}
+          maxWidth={maxWidth}
+          anchorY="top"
+          position-y={-0.2 * fontSize}
+          outlineWidth={0.03}
+        >
+          {detail}
+        </Text>
+      )}
     </Billboard>
   )
 }
@@ -88,7 +111,7 @@ function Branch({ node, angle }: { node: ThoughtNode; angle: number }) {
       </mesh>
       <group position={[0, 0, -end]}>
         <Room radius={BRANCH_ROOM_RADIUS} color="#3d4a6b" />
-        <Label text={node.label} position={[0, LABEL_HEIGHT, 0]} />
+        <Label text={node.label} detail={node.detail} position={[0, LABEL_HEIGHT, 0]} />
       </group>
     </group>
   )
@@ -100,7 +123,7 @@ export default function World({ root }: { root: ThoughtNode }) {
   return (
     <>
       <Room radius={ROOM_RADIUS} color="#3d4a6b" />
-      <Label text={root.label} position={[0, 3, 0]} fontSize={0.5} />
+      <Label text={root.label} detail={root.detail} position={[0, 3, 0]} fontSize={0.5} maxWidth={8} />
       {branches.map((node, i) => (
         <Branch key={node.id} node={node} angle={branchAngle(i)} />
       ))}
