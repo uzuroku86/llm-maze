@@ -12,7 +12,7 @@ const emptyGraph: ThoughtNode = { id: 'root', label: '', branches: [] }
 const addBranch = (
   node: ThoughtNode,
   parentId: string,
-  branch: { label: string; detail?: string },
+  branch: { label: string; detail?: string; question?: string },
 ): ThoughtNode => {
   if (node.id === parentId) {
     const branches = node.branches ?? []
@@ -95,7 +95,7 @@ export default function App() {
           if (isFirst && received++ === 0) {
             setGraph((g) => ({ ...g, ...node }))
           } else {
-            setGraph((g) => addBranch(g, target.node.id, node))
+            setGraph((g) => addBranch(g, target.node.id, isFirst ? node : { ...node, question }))
           }
         },
         controller.signal,

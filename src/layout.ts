@@ -21,6 +21,13 @@ export type Room = {
   radius: number
   depth: number
   parent: Room | null
+  children: Room[]
+}
+
+// 枝が内側に曲がって交差しないよう、2階層目以降は原点から見て外向きを基準に広げる
+export const headingOf = (parent: Room, index: number) => {
+  const base = parent.parent ? Math.atan2(parent.x, -parent.z) : parent.heading
+  return base + SLOTS[index] * (parent.parent ? SPREAD : ROOT_SPREAD)
 }
 
 export function layoutGraph(root: ThoughtNode): Room[] {
@@ -29,11 +36,9 @@ export function layoutGraph(root: ThoughtNode): Room[] {
   const place = (node: ThoughtNode, parent: Room | null, index: number) => {
     let room: Room
     if (!parent) {
-      room = { node, x: 0, z: 0, heading: 0, radius: ROOT_RADIUS, depth: 0, parent }
+      room = { node, x: 0, z: 0, heading: 0, radius: ROOT_RADIUS, depth: 0, parent, children: [] }
     } else {
-      // 枝が内側に曲がって交差しないよう、2階層目以降は原点から見て外向きを基準に広げる
-      const base = parent.parent ? Math.atan2(parent.x, -parent.z) : parent.heading
-      const heading = base + SLOTS[index] * (parent.parent ? SPREAD : ROOT_SPREAD)
+      const heading = headingOf(parent, index)
       const distance = parent.radius + PATH_LENGTH + ROOM_RADIUS
       room = {
         node,
@@ -43,7 +48,9 @@ export function layoutGraph(root: ThoughtNode): Room[] {
         radius: ROOM_RADIUS,
         depth: parent.depth + 1,
         parent,
+        children: [],
       }
+      parent.children.push(room)
     }
     rooms.push(room)
     node.branches?.slice(0, MAX_BRANCHES).forEach((child, i) => place(child, room, i))

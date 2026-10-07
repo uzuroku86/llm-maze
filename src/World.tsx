@@ -1,7 +1,15 @@
 import { Billboard, Text } from '@react-three/drei'
-import { PATH_LENGTH, PATH_OVERLAP, PATH_WIDTH, pathStart, type Room } from './layout'
+import {
+  PATH_LENGTH,
+  PATH_OVERLAP,
+  PATH_WIDTH,
+  pathStart,
+  type Room,
+} from './layout'
 
 const LABEL_HEIGHT = 3.5
+const QUESTION_HEIGHT = 0.9
+const QUESTION_OFFSET = 3
 
 function Label({
   text,
@@ -49,34 +57,94 @@ function Path({ room }: { room: Room }) {
   const start = pathStart(room)
   return (
     <group position={[start.x, 0, start.z]} rotation-y={-room.heading}>
-      <mesh position={[0, 0, -PATH_LENGTH / 2]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[PATH_WIDTH, PATH_LENGTH + PATH_OVERLAP * 2]} />
-        <meshStandardMaterial color="#6b7a99" />
-      </mesh>
+        <mesh position={[0, 0, -PATH_LENGTH / 2]} rotation-x={-Math.PI / 2}>
+          <planeGeometry args={[PATH_WIDTH, PATH_LENGTH + PATH_OVERLAP * 2]} />
+          <meshStandardMaterial color="#6b7a99" />
+        </mesh>
     </group>
+  )
+}
+
+function RoomView({ room }: { room: Room }) {
+  const { node } = room
+  const isRoot = room.depth === 0
+  const floor = (
+    <mesh position-y={0.01} rotation-x={-Math.PI / 2}>
+      <circleGeometry args={[room.radius, 48]} />
+      <meshStandardMaterial color="#3d4a6b" />
+    </mesh>
+  )
+  const label = isRoot ? (
+    <Label text={node.label} detail={node.detail} position={[0, 3, 0]} fontSize={0.4} maxWidth={8} />
+  ) : (
+    <Label text={node.label} detail={node.detail} position={[0, LABEL_HEIGHT, 0]} />
+  )
+
+  return (
+    <group position={[room.x, 0, room.z]}>
+      {floor}
+      {label}
+    </group>
+  )
+}
+
+// 1回の相談で生えた道は、同じ問いを持つ連続した子ども。その中央の道の入口に問いを置く
+function Questions({ room }: { room: Room }) {
+  const signs: { id: string; question: string; x: number; z: number }[] = []
+  const { children } = room
+  for (let i = 0; i < children.length; ) {
+    const question = children[i].node.question
+    let end = i
+    while (end < children.length && children[end].node.question === question) end++
+    if (question) {
+      const group = children.slice(i, end)
+      const heading = group.reduce((sum, child) => sum + child.heading, 0) / group.length
+      const distance = room.radius + QUESTION_OFFSET
+      signs.push({
+        id: group[0].node.id,
+        question,
+        x: room.x + Math.sin(heading) * distance,
+        z: room.z - Math.cos(heading) * distance,
+      })
+    }
+    i = end
+  }
+
+  return (
+    <>
+      {signs.map((sign) => (
+        <group key={sign.id} position={[sign.x, QUESTION_HEIGHT, sign.z]}>
+            <Billboard>
+              <Text
+                fontSize={0.35}
+                maxWidth={7}
+                textAlign="center"
+                anchorX="center"
+                anchorY="middle"
+                overflowWrap="break-word"
+                color="#2f4f8f"
+                outlineColor="#fff"
+                outlineWidth={0.03}
+              >
+                {`問い: ${sign.question}`}
+              </Text>
+            </Billboard>
+        </group>
+      ))}
+    </>
   )
 }
 
 export default function World({ rooms }: { rooms: Room[] }) {
   return (
     <>
-      {rooms.map((room) => {
-        const { node, x, z } = room
-        return (
-          <group key={node.id}>
-            {room.parent && <Path room={room} />}
-            <mesh position={[x, 0.01, z]} rotation-x={-Math.PI / 2}>
-              <circleGeometry args={[room.radius, 48]} />
-              <meshStandardMaterial color="#3d4a6b" />
-            </mesh>
-            {room.depth === 0 ? (
-              <Label text={node.label} detail={node.detail} position={[x, 3, z]} fontSize={0.4} maxWidth={8} />
-            ) : (
-              <Label text={node.label} detail={node.detail} position={[x, LABEL_HEIGHT, z]} />
-            )}
-          </group>
-        )
-      })}
+      {rooms.map((room) => (
+        <group key={room.node.id}>
+          {room.parent && <Path room={room} />}
+          <RoomView room={room} />
+          <Questions room={room} />
+        </group>
+      ))}
     </>
   )
 }
