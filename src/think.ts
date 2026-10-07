@@ -1,12 +1,13 @@
 export async function streamThought(
   question: string,
+  path: { label: string; detail?: string }[],
   onNode: (node: { label: string; detail?: string }) => void,
   signal: AbortSignal,
 ) {
   const res = await fetch('/api/think', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, path }),
     signal,
   })
   if (!res.ok || !res.body) throw new Error(await res.text())

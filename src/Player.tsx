@@ -7,19 +7,19 @@ const EYE_HEIGHT = 1.6
 const UP = new Vector3(0, 1, 0)
 
 type Props = {
-  session: number
+  positionRef: { current: { x: number; z: number } }
   isWalkable: (x: number, z: number) => boolean
   getPathDirection: (x: number, z: number) => { x: number; z: number } | null
 }
 
-export default function Player({ session, isWalkable, getPathDirection }: Props) {
+export default function Player({ positionRef, isWalkable, getPathDirection }: Props) {
   const keys = useRef(new Set<string>())
   const camera = useThree((s) => s.camera)
 
   useEffect(() => {
     camera.position.set(0, EYE_HEIGHT, 4)
     camera.lookAt(0, EYE_HEIGHT, 0)
-  }, [camera, session])
+  }, [camera])
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -67,6 +67,7 @@ export default function Player({ session, isWalkable, getPathDirection }: Props)
       }
     }
     camera.position.y = EYE_HEIGHT
+    positionRef.current = { x: camera.position.x, z: camera.position.z }
   })
 
   return null

@@ -1,0 +1,88 @@
+import type { ThoughtNode } from './thoughtGraph'
+
+export const PATH_LENGTH = 12
+export const PATH_WIDTH = 2
+export const PATH_OVERLAP = 1
+export const ROOT_RADIUS = 5
+export const ROOM_RADIUS = 4
+
+const ROOT_SPREAD = Math.PI / 4
+const SPREAD = Math.PI / 6
+
+// 後から枝が増えても既存の道が動かないよう、番号ごとに角度を固定する
+const SLOTS = [-1, 0, 1, -2, 2]
+export const MAX_BRANCHES = SLOTS.length
+
+export type Room = {
+  node: ThoughtNode
+  x: number
+  z: number
+  heading: number
+  radius: number
+  depth: number
+  parent: Room | null
+}
+
+export function layoutGraph(root: ThoughtNode): Room[] {
+  const rooms: Room[] = []
+
+  const place = (node: ThoughtNode, parent: Room | null, index: number) => {
+    let room: Room
+    if (!parent) {
+      room = { node, x: 0, z: 0, heading: 0, radius: ROOT_RADIUS, depth: 0, parent }
+    } else {
+      // 枝が内側に曲がって交差しないよう、2階層目以降は原点から見て外向きを基準に広げる
+      const base = parent.parent ? Math.atan2(parent.x, -parent.z) : parent.heading
+      const heading = base + SLOTS[index] * (parent.parent ? SPREAD : ROOT_SPREAD)
+      const distance = parent.radius + PATH_LENGTH + ROOM_RADIUS
+      room = {
+        node,
+        x: parent.x + Math.sin(heading) * distance,
+        z: parent.z - Math.cos(heading) * distance,
+        heading,
+        radius: ROOM_RADIUS,
+        depth: parent.depth + 1,
+        parent,
+      }
+    }
+    rooms.push(room)
+    node.branches?.slice(0, MAX_BRANCHES).forEach((child, i) => place(child, room, i))
+  }
+
+  place(root, null, 0)
+  return rooms
+}
+
+export const pathStart = (room: Room) => {
+  const parent = room.parent!
+  return {
+    x: parent.x + Math.sin(room.heading) * parent.radius,
+    z: parent.z - Math.cos(room.heading) * parent.radius,
+  }
+}
+
+const inRoom = (room: Room, x: number, z: number) => Math.hypot(x - room.x, z - room.z) <= room.radius
+
+const inPath = (room: Room, x: number, z: number) => {
+  if (!room.parent) return false
+  const start = pathStart(room)
+  const dx = x - start.x
+  const dz = z - start.z
+  const along = dx * Math.sin(room.heading) - dz * Math.cos(room.heading)
+  const across = dx * Math.cos(room.heading) + dz * Math.sin(room.heading)
+  return Math.abs(across) <= PATH_WIDTH / 2 && along >= -PATH_OVERLAP && along <= PATH_LENGTH + PATH_OVERLAP
+}
+
+export const isWalkable = (rooms: Room[], x: number, z: number) =>
+  rooms.some((room) => inRoom(room, x, z) || inPath(room, x, z))
+
+export function getPathDirection(rooms: Room[], x: number, z: number) {
+  if (rooms.some((room) => inRoom(room, x, z))) return null
+  const room = rooms.find((r) => inPath(r, x, z))
+  return room ? { x: Math.sin(room.heading), z: -Math.cos(room.heading) } : null
+}
+
+export const nearestRoom = (rooms: Room[], x: number, z: number) =>
+  rooms.reduce((best, room) =>
+    Math.hypot(x - room.x, z - room.z) < Math.hypot(x - best.x, z - best.z) ? room : best,
+  )

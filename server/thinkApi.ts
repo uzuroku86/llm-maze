@@ -3,7 +3,7 @@ import { loadEnv, type Plugin } from 'vite'
 
 const MODEL = 'gpt-4.1-mini'
 
-const SYSTEM_PROMPT = `あなたは相談相手として、ユーザーの相談に対する自分の考えを「思考の分岐」として示す。
+const ROOT_PROMPT = `あなたは相談相手として、ユーザーの相談に対する自分の考えを「思考の分岐」として示す。
 ユーザーに質問を返さず、自分の見解を述べる。
 出力は JSON Lines のみ。1行に1つの JSON オブジェクトを書き、説明文やコードブロックは書かない。
 1行目: 論点と、現時点での暫定的な答え。
@@ -18,6 +18,39 @@ const SYSTEM_PROMPT = `あなたは相談相手として、ユーザーの相談
 {"label": "成長が止まっているなら、続ける理由は弱い", "detail": "学びがないまま時間が過ぎるほど、市場価値の差は広がる。"}
 {"label": "興味を失ったのは、仕事ではなく環境のせいかもしれない", "detail": "同じ仕事でも、チームや裁量が変わると意欲は戻ることがある。"}
 {"label": "まず休んでから判断するほうがいい", "detail": "疲労は判断を悲観的に歪めるので、結論を急がないほうがよい。"}`
+
+const BRANCH_PROMPT = `あなたは相談相手として、これまでの思考の流れを踏まえ、ユーザーが現在地点で追加で考えたいことに対する自分の考えを「思考の分岐」として示す。
+ユーザーに質問を返さず、自分の見解を述べる。これまでの流れと重複する内容は避ける。
+出力は JSON Lines のみ。1行に1つの JSON オブジェクトを書き、説明文やコードブロックは書かない。
+3行出力する。互いに異なる立場からの見解にする。
+  label: 30文字以内の言い切りの文(問いにしない)。
+  detail: その見解の理由を2文以内で。
+
+出力例:
+{"label": "成長実感は、数字より新しい仕事の頻度に出る", "detail": "半年前にできなかった仕事を任されているかが、客観的な目安になる。"}
+{"label": "学びが止まった原因は、本人より配置にあるかもしれない", "detail": "同じ業務の繰り返しなら、異動や役割変更だけで状況が変わることがある。"}
+{"label": "社外で試せるなら、成長の有無はすぐ確かめられる", "detail": "副業や勉強会で通用するかを見れば、今の環境の限界が分かる。"}`
+
+type Step = { label: string; detail?: string }
+
+const buildMessages = (question: string, path: Step[]) => {
+  if (path.length === 0) {
+    return [
+      { role: 'system', content: ROOT_PROMPT },
+      { role: 'user', content: question },
+    ]
+  }
+  const flow = path
+    .map((step, i) => `${i + 1}. ${step.label}${step.detail ? ` — ${step.detail}` : ''}`)
+    .join('\n')
+  return [
+    { role: 'system', content: BRANCH_PROMPT },
+    {
+      role: 'user',
+      content: `これまでの思考の流れ(最初の論点から現在地まで):\n${flow}\n\n現在地点は「${path[path.length - 1].label}」。ここで追加で考えたいこと:\n${question}`,
+    },
+  ]
+}
 
 const readBody = async (req: IncomingMessage) => {
   const chunks: Buffer[] = []
@@ -43,7 +76,7 @@ export function thinkApi(): Plugin {
           return
         }
 
-        const { question } = JSON.parse(await readBody(req)) as { question: string }
+        const { question, path = [] } = JSON.parse(await readBody(req)) as { question: string; path?: Step[] }
         const abort = new AbortController()
         res.on('close', () => abort.abort())
 
@@ -53,10 +86,7 @@ export function thinkApi(): Plugin {
           body: JSON.stringify({
             model: MODEL,
             stream: true,
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: question },
-            ],
+            messages: buildMessages(question, path),
           }),
           signal: abort.signal,
         }).catch(() => null)
